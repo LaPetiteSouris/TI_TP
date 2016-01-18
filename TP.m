@@ -2,8 +2,8 @@
 %%                     TRANSMISSION DE L'INFORMATION                     %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Ce code vous est une simple proposition suivant ï¿½ peu de chose prï¿½s le
-% sujet du TP. Libre ï¿½ vous de le modifier comme vous le souhaitez.
+% Ce code vous est une simple proposition suivant à peu de chose près le
+% sujet du TP. Libre à vous de le modifier comme vous le souhaitez.
 
 % METTEZ TOUT EN COMMENTAIRE AVANT DE COMMENCER LE TP
 % AU FUR ET A MESURE DE VOTRE AVANCEMENT, TESTEZ VOTRE CODE...
@@ -13,9 +13,9 @@ clear all
 close all
 clc
 
-disp('Le message suivant va ï¿½tre compressï¿½ (par Huffman), transmis, puis dï¿½compressï¿½ :'),
+disp('Le message suivant va être compressé (par Huffman), transmis, puis décompressé :'),
 
-texte = 'TESTDETI';
+texte = 'TESTDETI';        % initilisation
 %texte = 'CECIESTUNEDEMOCETTEPHRASEVAETRECOMPRESSEEPARLECODEDEHUFFMAN';
 %texte = 'ABCDEFGHIJKLMOPQRSTUVWXYZ';
 
@@ -25,13 +25,13 @@ disp(texte);
 % *************************************************************************
 
 % % Chiffrement
-% cle = input('Quelle est la clï¿½ de chiffrement ?');
-% texte = cryptage(texte, cle);
-% disp(' ');
-% disp('Le cryptogramme est :');
-% commentaire = texte;
-% disp(commentaire);
-% pause
+cle = input('Quelle est la clé de chiffrement ?')
+texte =     cryptage(texte, cle);
+disp(' ');
+disp('Le cryptogramme est :');
+commentaire = texte;
+disp(commentaire);
+pause
 
 %% 2eme partie du TP : codage de Huffman
 % *************************************************************************
@@ -46,7 +46,7 @@ disp(commentaire);
 % Compression de Huffman
 [texte_compr,arbre] = huffman_compr(texte);
 disp(' ');
-disp('Le code calculï¿½ est :');
+disp('Le code calculé est :');
 for i = 1 : length(arbre)
     commentaire = strcat(char(arbre(i).info),'-->',arbre(i).valeur);
     disp(commentaire);
@@ -93,20 +93,20 @@ disp(commentaire);
 % Codes correcteur d'erreur
 % --------------------------------------------------------------
 
-%  Matrice gï¿½nï¿½ratrice
+%  Matrice génératrice
 G=[1 1 1 0 0 0 0 ;...
    1 0 0 1 1 0 0 ;...
    0 1 0 1 0 1 0 ;...
    1 1 0 1 0 0 1];
 
 % Taille du vecteur d'info et de code
-%Nombre de ligne de matrice G
+
 [k,n]=size(G);
 
-% Nombre de mots ï¿½ coder dans la variable texte_compr
-Nb_info = length(texte_compr);
+% Nombre de mots a coder dans la variable texte_compr
+Nb_info = length(texte);
 
-% On dï¿½coupe le vecteur compressï¿½ en paquets de k digits et on va contruire
+% On découpe le vecteur compression en paquets de k digits et on va contruire
 % une matrice i qui contient k colonne, chaque ligen est une partie le
 % longeur k de texte_compr.
 
@@ -124,17 +124,17 @@ code = reshape(mot_de_code_matrice.',1,[]);
 % PARAMETRES POUR SIMULINK
 % Simulation de la transmission
 fe_simulink = 50000;
-% Durï¿½e / amplitude des symboles
+% Durée / amplitude des symboles
 Tsymbole_simulink = 70;
 Asymbole_simulink = 5;
 code_simulink = [code];
-% Vecteur d'entrï¿½e de la simulation
+% Vecteur d'entropie de la simulation
 t_simulink = [0:length(code_simulink)-1]*Tsymbole_simulink/fe_simulink;
 entree_simulink = [t_simulink', code_simulink'];
 
 %% SIMULINK
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-sim('simulation.mdl')
+sim('simulation2.mdl')
 % 
 % 
 % %% Analyse des erreurs
@@ -142,78 +142,117 @@ sim('simulation.mdl')
 % 
 % % Analyse du code
 % % *** A COMPLETER ***
-% 
-% % Dï¿½calage liï¿½ ï¿½ la transmission
-% Ndecalage = ; % *** A COMPLETER ***
-% code_recu = ; % *** A COMPLETER ***
-% code_emis = ; % *** A COMPLETER ***
-% 
+
+% Décalage ligne de la transmission
+Ndecalage = 2; 
+code_recu = sortie_simulink'; 
+code_emis = code; % 
+code_r_decalage=circshift(code_recu,[1 length(code_emis)-Ndecalage]);
+vect=code_r_decalage+code_emis;
 % % Vecteurs d'erreur
-% % *** A COMPLETER ***
+vect_erreur=mod(vect,2);
 % % Nombre d'erreur
-% % *** A COMPLETER ***
+disp('Le nombre totale des erreurs dans trasmission est :');
+erreur=length(find(vect_erreur==1))
+
 % 
-% % Dï¿½tection/correction des erreurs
+% % Detection/correction des erreurs
 % % --------------------------------------------------------------
 % 
-% % Matrice de contrï¿½le
-% H = [0 0 0 1 1 1 1; ...
-%      0 1 1 0 0 1 1; ...
-%      1 0 1 0 1 0 1];
+% % Matrice de controle
+H = [0 0 0 1 1 1 1; ...
+     0 1 1 0 0 1 1; ...
+     1 0 1 0 1 0 1];
+ 
+ %Transpose de matrice de controle
+ Ht=H';
+ %coupe le code recu et contruire un matrice de code recu
+ y=buffer(code_r_decalage, n, 0);
+ y=y';
+ %Remarque s_y=y*H_transpose
+ s_y=mod(y*Ht,2);
+ %e=table des erreurs
+ e=syndtable(H);
+ %     % Calcul du syndrome
+ %syndrome=e*H_transpose
+ syndrome=e*Ht;
+
+ 
 % 
 % % Correction des erreurs
-% for i =1:Nb_info
 %     
-%     % Sans correction d'erreur --------------------
-%     info_non_corrigee(..) = ; % *** A COMPLETER ***
-%     
-%     % Avec correction des erreurs -----------------
-%     % Calcul du syndrome
-%     s = ; % *** A COMPLETER ***
+%     % Avec correction des erreurs --------------------
+[n_ligne, n_col]=size(s_y);
 %     % Position de l'erreur
-%     pos_e = ; % *** A COMPLETER ***
-%     % Correction du code reï¿½u
-%     code_corrige(..) = ; % *** A COMPLETER ***
-%     % Extraction de l'information
-%     info_corrigee(..) = ; % *** A COMPLETER ***
-%     
-% end
+[~,index_derreur_dans_syndrome]=ismember(s_y, syndrome,'rows')
+%     % Correction du code reçu
+%matrice de bits recu-corrige
+
+%taille de matrice y
+[n_ligne_y, n_col_y]=size(y);
+code_corrige_mat=zeros(n_ligne_y,n_col_y);
+
+for j=1:n_ligne_y
+    code_corrige_mat(j,1:end)=y(j,1:end)-e(index_derreur_dans_syndrome(j),1:end);
+end
+
+%Matrice de flux binaire contenu le flux corrige
+code_corrige_mat=mod(code_corrige_mat,2);
+% flux binaire corrige
+code_corrige = reshape(code_corrige_mat.',1,[]);
+
+% %message binaire contenu infomation
+% %les bits de l'information sont bits 3 5 6 et 7, selon matrice G
+info_corrige=zeros(n_ligne_y,4);
+info_corrige(1:end,1)=code_corrige_mat(1:end,3);
+info_corrige(1:end,2)=code_corrige_mat(1:end,5);
+info_corrige(1:end,3)=code_corrige_mat(1:end,6);
+info_corrige(1:end,4)=code_corrige_mat(1:end,7);
 % 
-% % Dï¿½compression
-% texte_envoye = huffman_decompr(texte_compr,arbre);
-% %texte_envoye = decryptage(texte_envoye, cle);
-% disp(' ');
-% disp('Le message dï¿½compressï¿½ (SANS transmission) est :');
-% disp(texte_envoye);
+% %contruire flux binaire contenu le message texte 
+info_corrige=reshape(info_corrige.',1,[]);
+info_corrige=double(info_corrige);
+texte_avec_correction=huffman_decompr(info_corrige, arbre);
+disp('Le message décompressé (AVEC transmission, AVEC code correcteur) est :')
+texte_avec_correction=texte_avec_correction(1:Nb_info)
+
+
+%% Sans correction d'erreur --------------------
+%%
+% %message binaire contenu infomation
+% %les bits de l'information sont bits 3 5 6 et 7, selon matrice G
+info_non_corrige=zeros(n_ligne_y,4);
+info_non_corrige(1:end,1)=y(1:end,3);
+info_non_corrige(1:end,2)=y(1:end,5);
+info_non_corrige(1:end,3)=y(1:end,6);
+info_non_corrige(1:end,4)=y(1:end,7);
 % 
-% texte_recu = huffman_decompr(info_non_corrigee,arbre);
-% %texte_recu = decryptage(texte_recu, cle);
-% disp(' ');
-% disp('Le message dï¿½compressï¿½ (AVEC transmission, SANS code correcteur) est :');
-% disp(texte_recu);
-% 
-% texte_recu_corrige = huffman_decompr(info_corrigee,arbre);
-% %texte_recu_corrige = decryptage(texte_recu_corrige, cle);
-% disp(' ');
-% disp('Le message dï¿½compressï¿½ (AVEC transmission, AVEC code correcteur) est :');
-% disp(texte_recu_corrige);
-% disp(' ')
-% 
-% % Taux d'erreur par caractï¿½re
-% % Sans prise en compte de la redondance
-% nb_err = ; % *** A COMPLETER ***
-% tau_err = ; % *** A COMPLETER ***
-% disp('Taux d''erreur caractï¿½re (SANS code correcteur) :');
-% fprintf('  - Nombre d''erreur : %i\n',nb_err)
-% fprintf('  - Taux d''erreur : %.2f%%\n', tau_err);
-% % En tenant compte de la redondance (code correcteur)
-% nb_err = ; % *** A COMPLETER ***
-% tau_err = ; % *** A COMPLETER ***
-% disp('Taux d''erreur caractï¿½re (AVEC code correcteur) :');
-% fprintf('  - Nombre d''erreur : %i\n',nb_err)
-% fprintf('  - Taux d''erreur : %.2f%%\n', tau_err);
-% 
-% %% Evolution des taux d'erreurs en fonction du RSB
-% % *************************************************************************
-% 
-% % *** A COMPLETER ***
+% %contruire flux binaire contenu le message texte 
+info_non_corrige=reshape(info_non_corrige.',1,[]);
+info_non_corrige=double(info_non_corrige);
+texte_non_corrige=huffman_decompr(info_non_corrige, arbre);
+disp('Le message décompressé (AVEC transmission, SANS code correcteur) est :')
+texte_non_corrige=texte_non_corrige(1:Nb_info)
+
+
+%%Commentaire sur la capacite de correction:
+%Partie supplementaire
+%On va afficher la position des erreurs dans la trasmissions
+
+disp('Position des erreurs dans le matrice binaire trasmis. Position de 1 est un erreur :')
+pos_e=mod(y-mot_de_code_matrice,2)
+
+disp('Position des erreurs deja corriges . Position de 1 est un erreur deja corrige. :')
+pos_e_corrige=mod(code_corrige_mat-y,2)
+
+
+%% Décompression
+texte_envoye = huffman_decompr(double(texte_compr),arbre);
+texte_envoye='HELLOWORLDITISME';
+texte_envoye=cryptage(texte_envoye,'P')
+texte_envoye = decryptage(texte_envoye, cle)
+
+%%
+
+
+
